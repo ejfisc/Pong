@@ -17,9 +17,11 @@ struct {
 struct {
   int x;
   int y;
-  int nextX;
-  int nextY;
-  bool direction; // true = left, false = right
+  // direction vector: [1/0, 1/0, x]
+  // [right/left, positive/negative, magnitude of slope]
+  // ex: [1, 1, 0] ball is moving right in a straight line
+  // [0, 1, 2] ball is moving left in the upwards direction with a slope of 2x
+  static int direction[3];
 } ball;
 
 struct {
@@ -55,10 +57,13 @@ void setup() {
 void loop() {
   if(game.start) {
     // initialize player and ball positions
-    player1.y = 2;
-    player2.y = 2;
+    player1.y = 3;
+    player2.y = 3;
     ball.x = 8;
     ball.y = 3;
+    ball.direction[0] = 1;
+    ball.direction[1] = 1;
+    ball.direction[2] = 0;
     
     // draw players
     drawPlayer(1);
@@ -114,25 +119,14 @@ void loop() {
     clearPlayer(2, 1);
   }
   
-
-  /* TODO:
-     GAME LOGIC
-  */
-
-  // BALL MOVE LOGIC
-  /*
-     left if ball.direction == true
-     right if ball.direction == false
-  */
-  
   // collision with player 1, change direction
-  if(ball.x == player1.x+1 and (ball.y - player1.y) < 2 and (ball.y - player1.y) > 0) {
-    ball.direction = false;   
+  if(ball.x == player1.x+1 and (ball.y >= player1.y-1) and (ball.y <= player1.y+1)) {
+    ball.direction[0] = 1;   
   }
   
   // collision with player 2, change direciton
-  if(ball.x == player2.x-1 and (ball.y - player2.y) < 2 and (ball.y - player2.y) > 0) {
-    ball.direction = true;
+  if(ball.x == player2.x-1 and (ball.y >= player2.y-1) and (ball.y <= player2.y+1)) {
+    ball.direction[0] = 0;
   }
 
   if(ball.x == 0 or ball.x == 15) {
@@ -142,51 +136,66 @@ void loop() {
     Oled.clearDisplay();
   }
 
-  // ball is moving left  
-  if(ball.direction == true and ball.x > 0) {
-    ball.x--;
-    Oled.drawTile(ball.x+1, ball.y, 1, emptyTile);
-    Oled.drawTile(ball.x, ball.y, 1, ballTile);    
-  }
-
-  // ball is moving right
-  if(ball.direction == false and ball.x < 15) {
-    ball.x++;
-    Oled.drawTile(ball.x-1, ball.y, 1, emptyTile);
-    Oled.drawTile(ball.x, ball.y, 1, ballTile);
-  }
+  int ballPos[2];
+  ballPos[0] = ball.x;
+  ballPos[1] = ball.y;
+  int nextPos[2] = getNextBallPos(ballPos, ball.direction);
+  Oled.drawTile(ballPos[0], ballPos[1], 1, emptyTile);
+  Oled.drawTile(nextPos[0], nextPos[1], 1, ball);
+    
 
   delay(30);
 }
 
+// takes current ball pos and direction vector and returns array with next ball pos [x, y]
+int getNextBallPos(int currentPos[], int direction[]) {
+  // ball is moving right
+  if(direction[0] == 1) {
+    ball.x = currentPos[0] + 1;
+  }
+  else if(direction[0] == 0) {
+    ball.x = currentPos[0] - 1;
+  }
+  ball.y = currentPos[1];
+  return [ball.x, ball.y]
+
+}
+
 void drawPlayer(int playerNum) {
   if(playerNum == 1) {
+    Oled.drawTile(player1.x, player1.y-1, 1, playerTile);
     Oled.drawTile(player1.x, player1.y, 1, playerTile);
     Oled.drawTile(player1.x, player1.y+1, 1, playerTile);
-    Oled.drawTile(player1.x, player1.y+2, 1, playerTile);
   }
   else if(playerNum == 2) {
+    Oled.drawTile(player2.x, player2.y-1, 1, playerTile);
     Oled.drawTile(player2.x, player2.y, 1, playerTile);
     Oled.drawTile(player2.x, player2.y+1, 1, playerTile);
-    Oled.drawTile(player2.x, player2.y+2, 1, playerTile);
   }
 }
 
-void clearPlayer(int playerNum, int direction) {
-  if(playerNum == 1 and direction == 0) {
-    //player 1 moved down
-    Oled.drawTile(player1.x, player1.y-1, 1, emptyTile);   
+// replace the old player tile with empty tile
+void clearPlayer(int playerNum, int previousPosition) {
+  // player 1
+  if(playerNum == 1) {
+    // player moved up
+    if(previousPosition > player1.y) {
+      Oled.drawTile(player1.x, player1.y-2, 1, emptyTile);
+    }
+    // player moved down
+    else {
+      Oled.drawTile(player1.x, player1.y+2, 1, emptyTile);
+    }
   }
-  else if(playerNum == 1 and direction == 1) {
-    //player 1 moved up
-    Oled.drawTile(player1.x, player1.y+3, 1 ,emptyTile);
-  }
-  else if(playerNum == 2 and direction == 0) {
-    //player 2 moved down
-    Oled.drawTile(player2.x, player2.y-1, 1, emptyTile);
-  }
-  else if(playerNum == 2 and direction == 1) {
-    //player 2 moved up
-    Oled.drawTile(player2.x, player2.y+3, 1, emptyTile);
+  // player 2
+  else {
+    // player moved up
+    if(previousPosition > player2.y) {
+      Oled.drawTile(player2.x, player2.y-2, 1, emptyTile);
+    }
+    // player moved down
+    else {
+      Oled.drawTile(player2.x, player2.y+2, 1, emptyTile);
+    }
   }
 }
