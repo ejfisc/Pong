@@ -58,7 +58,7 @@ void setup() {
 void loop() {
   // current ball direction and position
   int *dirVector = &ball.direction[0];
-  int *nextPos = &ball.coordinates[0];
+  int *currentBallCoord = &ball.coordinates[0];
 
   // current state of buttons
   int player1DownState = digitalRead(player1DownPin);
@@ -85,53 +85,50 @@ void loop() {
     Oled.setCursor(7, 2);
     Oled.print(" ");
     Oled.refreshDisplay();
-    Oled.drawTile(*nextPos, *(nextPos+1), 1, ballTile);
+    Oled.drawTile(*currentBallCoord, currentBallCoord[1], 1, ballTile);
     game.start = false;
   }
 
   // Player Move Logic:
   // player 1 move down
-  if(player1DownState == HIGH and player1.y < 5) {
+  if(player1DownState == HIGH and player1.y+1 < 7) {
+    int previous = player1.y;
     player1.y++;
-    drawPlayer(1);
-    clearPlayer(1, 0);
+    movePlayer(1, previous);
   }
 
   // player 1 move up
-  if(player1UpState == HIGH and player1.y > 0) {
+  if(player1UpState == HIGH and player1.y-1 > 0) {
+    int previous = player1.y;
     player1.y--;
-    drawPlayer(1);   
-    clearPlayer(1, 1);
+    movePlayer(1, previous);
   }
   
   // player 2 move down
-  if(player2DownState == HIGH and player2.y < 5) {
+  if(player2DownState == HIGH and player2.y+1 < 7) {
+    int previous = player2.y;
     player2.y++;
-    drawPlayer(2);
-    clearPlayer(2, 0);
+    movePlayer(2, previous);
   }
 
   // player 2 move up
-  if(player2UpState == HIGH and player2.y > 0) {
+  if(player2UpState == HIGH and player2.y-1 > 0) {
+    int previous = player2.y;
     player2.y--;
-    drawPlayer(2);
-    clearPlayer(2, 1);
+    movePlayer(2, previous);
   }
 
   // Ball Move Logic:
-  int lastPos[2] = {*nextPos, *(nextPos+1)};
-  int *nextCoord = getNextBallPos(*nextPos, *dirVector);
-  int ballPos[] = {*nextCoord, *(nextCoord+1)};
-  Serial.println(lastPos[0]);
-  Serial.println(lastPos[1]);
-  Serial.println(*nextCoord);
-  int address = nextCoord;
-  Serial.println(address);
-  //Oled.drawTile(lastPos[0], lastPos[1], 1, emptyTile);
-  //Oled.drawTile(nextPos[0], nextPos[1], 1, ball);
+  int lastPos[2] = {*currentBallCoord, currentBallCoord[1]};
+  int *nextBallCoord = getNextBallPos(*currentBallCoord, *dirVector);
+  int ballPos[] = {*nextBallCoord, nextBallCoord[1]};
+  Oled.drawTile(lastPos[0], lastPos[1], 1, emptyTile);
+  Oled.drawTile(ballPos[0], ballPos[1], 1, ballTile);
     
   if(ballPos[0] == 0 or ballPos[0] == 15) {
     game.start = true;
+    ball.coordinates[0] = 8;
+    ball.coordinates[1] = 3;
     tone(BUZZER, 50, 1000);
     delay(1000);
     Oled.clearDisplay();
@@ -148,42 +145,47 @@ void loop() {
   }
 
   // game movement rate
-  delay(5000);
+  delay(30);
 }
 
 // takes current ball pos and direction vector and returns array with next ball pos [x, y]
 int getNextBallPos(int *currentPos, int *direction) {
-  int next[2] = {4, 7};
+  int next[2] = {7, 4};
   int *nextPos;
   nextPos = &next[0];
   int address = nextPos;
-  Serial.println(address);
-  Serial.println(*nextPos);
+  // DO NOT REMOVE THESE PRINT STATEMENTS!!
+  Serial.println(address);    // I have absolutely no idea why, but this code literally doesn't work without them. If they're not there, *nextBallCoord is incorrect.
+  Serial.println(*nextPos);   // I'm not sure what they're doing in the backend, I've spent hours trying to figure it out, I couldn't, so I've resolved to just keeping these here.
   return nextPos;
 }
 
 // replace the old player tile with empty tile
-void clearPlayer(int playerNum, int previousPosition) {
+void movePlayer(int playerNum, int previousPosition) {
   // player 1
   if(playerNum == 1) {
     // player moved up
     if(previousPosition > player1.y) {
-      Oled.drawTile(player1.x, player1.y-2, 1, emptyTile);
+      Oled.drawTile(player1.x, player1.y-1, 1, playerTile);
+      Oled.drawTile(player1.x, player1.y+2, 1, emptyTile);
     }
     // player moved down
     else {
-      Oled.drawTile(player1.x, player1.y+2, 1, emptyTile);
+      Oled.drawTile(player1.x, player1.y+1, 1, playerTile);
+      Oled.drawTile(player1.x, player1.y-2, 1, emptyTile);
     }
   }
   // player 2
   else {
     // player moved up
     if(previousPosition > player2.y) {
-      Oled.drawTile(player2.x, player2.y-2, 1, emptyTile);
+      Oled.drawTile(player2.x, player2.y-1, 1, playerTile);
+      Oled.drawTile(player2.x, player2.y+2, 1, emptyTile);
     }
     // player moved down
     else {
-      Oled.drawTile(player2.x, player2.y+2, 1, emptyTile);
+      Oled.drawTile(player2.x, player2.y+1, 1, playerTile);
+      Oled.drawTile(player2.x, player2.y-2, 1, emptyTile);
     }
   }
 }
@@ -200,7 +202,6 @@ void drawPlayer(int playerNum) {
     Oled.drawTile(player2.x, player2.y+1, 1, playerTile);
   }
 }
-
 
 
 
