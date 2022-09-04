@@ -44,8 +44,6 @@ struct {
   bool newRound;
 } game;
 
-
-
 void setup() {
   // establish buttons as input and buzzer as output
   pinMode(racket1DownPin, INPUT);
@@ -222,7 +220,6 @@ void loop() {
         racket1.winner = true; // set winner
         game.newRound = false; // negate new round because game is over
         gameOver();
-        return; // return so loop doesn't continue running after gameOver(), if player chooses to play again loop() will be called
       }
     }
     else if(racket2.active) {
@@ -232,7 +229,6 @@ void loop() {
         racket2.winner = true;
         game.newRound = false;
         gameOver();
-        return;
       }
     }
   }
@@ -281,7 +277,7 @@ int getNextBallPos(int *currentPos, int *dirVector) {
   if(dirVector[1] < 0) { newY = currentPos[1]+1; } // if slope is -1 y increases
   int next[2] = {newX, newY}; // store new x and y in array
   int *nextPos; 
-  nextPos = &next[0]; // create pointer to address of next array, we'll return the address so that loop() can reference that array
+  nextPos = &next[0]; // create pointer to address of next array, we'll return the address so that the array can be referenced in loop()
   int address = nextPos;
   // DO NOT REMOVE THESE PRINT STATEMENTS!!
   Serial.println(address);    // I have absolutely no idea why, but this code literally doesn't work without them. If they're not there, this function returns incorrect output and breaks everything.
@@ -360,7 +356,7 @@ void gameOver() {
       Oled.clearDisplay();
       game.start = true; // flag new game
       Oled.setFont(u8x8_font_courB18_2x3_f); // reset font
-      loop(); 
+      break; // break and go back to loop()
     }
     // player pressed right buttons, quit
     else if(racket2DownState == HIGH or racket2UpState == HIGH) {
@@ -369,6 +365,7 @@ void gameOver() {
       Oled.print("Goodbye");
       delay(1000);
       Oled.noDisplay();
+      exit(0); // terminate the program
     }
   }
 }
